@@ -1,0 +1,87 @@
+let open_file = extern fn String -> String -> Option of Ptr;
+let fclose = extern fn Ptr -> ();
+let read_bytes = extern fn Ptr -> String;
+import std/Regex;
+import std/Math;
+
+let int32_parse = extern fn String -> Int;
+
+let get_int = fn s ->
+  match Regex.find_one s "^[0-9]+" with
+  | Some (st, end) -> (
+    let int_val = int32_parse @@ s[st .. end] in
+    (int_val, s[(end) ..])
+  )
+  | None -> (0, s)
+;;
+
+let process_next = fn prev_dial amount dir zerox ->
+  let dial = prev_dial + amount * dir;
+  let d100 = dial % 100;
+  (d100, zerox + (Int @@ d100 == 0))
+;;
+
+let normalize = fn a ->
+  let a = if a < 0 then a + 100 else a;
+  if a == 0 then 100 else a
+;;
+
+
+let process_next2 = fn prev_dial amount dir zerox ->
+  let dial = prev_dial + amount * dir;
+  let modifier = if dir == 1 then 1 else 99;
+
+
+  let first = (-1 * prev_dial * modifier) % 100 |> normalize;
+  let xzero = if (first > amount) then 0 else (1 + ((amount - first) / 100));
+
+  (dial % 100, zerox + xzero)
+
+;;
+
+let process_rots = fn rs p (dial, xzero) ->
+  if (array_size rs > 0) then (
+    let (next, amount, dir) = match rs[0] with
+    | 'L' ->
+      let (n, next) = rs [1 ..] |> get_int in
+      (next [1 ..], n, -1) # skip nl after
+    | 'R' ->
+      let (n, next) = rs [1 ..] |> get_int in
+      (next [1 ..], n, 1) # skip nl after
+    | _ -> (dial, rs [1 ..], 0, 1)
+    ;
+    p dial amount dir xzero
+    |> process_rots next p
+
+  ) else (
+    xzero
+  )
+;;
+
+let input_test = 
+`L68
+L30
+R48
+L5
+R60
+L55
+L1
+L99
+R14
+L82`;
+
+let () = match (open_file "./day01/input.txt" "rb") with
+  | Some fd -> (
+    let input = read_bytes fd;
+    let p1 = process_rots input process_next (50, 0) in
+    print `part1: stops at 0 {p1} times\n`;
+
+    let p2 = process_rots input process_next2 (50, 0) in
+    print `part2: crosses 0 {p2} times\n`;
+    fclose fd
+  )
+  | None -> () 
+  ;
+
+
+
