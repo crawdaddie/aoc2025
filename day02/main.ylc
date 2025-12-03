@@ -1,0 +1,120 @@
+let open_file = extern fn String -> String -> Option of Ptr;
+let fclose = extern fn Ptr -> ();
+let read_bytes = extern fn Ptr -> String;
+import std/Regex;
+import std/Math;
+
+let uint64_parse = extern fn String -> Uint64;
+
+let parse_int = fn input ->
+  match Regex.find_one input "^[0-9]+" with
+  | Some (st, end) -> (
+    (uint64_parse @@ input[st .. end], input [end ..])
+  )
+  | None -> (0, "") # unreachable hopefully
+;;
+
+
+let sum_invalids = fn a b ->
+  # let digitsa = 1 + Math.ilog10 a;
+  # print `modifier: {m}\n`;
+  #
+  let acc = [| Uint64 0 |];
+
+  for x = a .. (b + 1) in (
+    let ndigits = 1 + Math.ilog10 x;
+    let modifier = 1 + Math.u64pow 10 (ndigits / 2); # number like 100001
+    if (x % modifier == 0 && ndigits % 2 == 0) then (
+      acc[0] := x + (acc[0])
+    ) else (())
+  );
+
+  acc[0]
+;;
+
+let get_modifier = fn m seq_len ->
+  # seq_len: 3, m: 4 ->
+  # 1001001001 * 123 = 123123123123
+  # 1001001001 = (10 ^ 0) + (10 ^ 3) + (10 ^ 6) + (10 ^ 9) 
+  let acc = [| Uint64 0 |];
+  for ex = 0 .. m in (
+    acc[0] := (acc[0]) + Math.u64pow 10 (ex * seq_len)
+  );
+  acc[0]
+;;
+
+let has_repeating_digits = fn x total_len seq_len ->
+  match seq_len with
+  | 0 -> false 
+  | n if n % total_len == 0 -> (
+    get_modifier n total_len;
+    has_repeating_digits x total_len (n - 1)
+  )
+  | _ -> has_repeating_digits x total_len (seq_len - 1)
+;;
+
+let div_pairs = fn i n res ->
+  match (i, i % n) with
+  | (0, t) -> res
+  | (m, 0) -> div_pairs (i - 1) n ((i, n / i)::res)
+  | _ -> div_pairs (i - 1) n res
+;;
+
+print @@ typeof div_pairs;
+
+div_pairs (1 + (Int @@ Math.sqrt 10)) 10 [(1, 10),];
+
+# let sum_invalids2 = fn a b ->
+#   # let digitsa = 1 + Math.ilog10 a;
+#   # print `modifier: {m}\n`;
+#   #
+#   let acc = [| Uint64 0 |];
+#
+#   for x = a .. (b + 1) in (
+#     let ndigits = 1 + Math.ilog10 x;
+#     print `{x}: \tdigits:[{ndigits} - {Int @@ Math.sqrt ndigits}]\n`;
+#     # let l = divs_pairs ndigits;
+#     if has_repeating_digits x (ndigits / 2) ndigits then (
+#       acc[0] := x + (acc[0])
+#     ) else (())
+#
+#     # let modifier = 1 + Math.u64pow 10 (ndigits / 2);
+#     # if (x % modifier == 0 && ndigits % 2 == 0) then (
+#     # ) else (())
+#   );
+#
+#   acc[0]
+# ;;
+#
+#
+# let parse_ranges = fn s acc input -> 
+#   if (array_size input > 0) then (
+#     let (a, next) = parse_int input;
+#     let (b, next2) = parse_int @@ next [1 ..]; # skip -
+#     let next3 = next2[1 ..]; # skip ,
+#     parse_ranges s (s a b |> (+) acc) next3
+#   ) else (
+#     acc
+#   ) 
+# ;;
+#
+# # print `{214 * get_modifier 4 3}\n`;
+# # print `{1234 * get_modifier 4 4}\n`;
+# # print `{21 * get_modifier 5 2}\n`;
+#
+# divs_pairs 10;
+#
+# let test_input = `11-22,95-115,998-1012,1188511880-1188511890,222220-222224,1698522-1698528,446443-446449,38593856-38593862,565653-565659,824824821-824824827,2121212118-2121212124`;
+# let () = match open_file "./day02/input.txt" "rb" with
+# | Some fd -> (
+#   # let input = read_bytes fd;
+#   # let invalids = parse_ranges sum_invalids (Uint64 0) test_input;
+#   # print `part1: has #{invalids} invalid IDs\n`;
+#
+#   # print `part2: has #{parse_ranges sum_invalids2 (Uint64 0) input} invalid IDs\n`
+#   ()
+#
+# )
+# | None -> ()
+# #
+# #
