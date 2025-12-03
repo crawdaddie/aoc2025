@@ -28,9 +28,7 @@ let normalize = fn a ->
 
 let process_next2 = fn prev_dial amount dir zerox ->
   let dial = prev_dial + amount * dir;
-  let modifier = if dir == 1 then 1 else 99;
-
-
+  let modifier = (100 + dir) % 100;
   let first = (-1 * prev_dial * modifier) % 100 |> normalize;
   let xzero = if (first > amount) then 0 else (1 + ((amount - first) / 100));
 
